@@ -2,7 +2,15 @@
 // 解析URL的正则表达式，不使用命名捕获组以提高兼容性
 // var regex = /^(?:([a-z][a-z0-9+\-.]*):)?\/\/([^\/\?#:]+)(?::(\d+))?(\/[^?#]*)?(?:\?([^#]*))?(?:#(.*))?$/i;
 
-function getUrlRegexGroups () {
+const allFullPathPages = {}
+function getUrlType(url = '') {
+  if (url.startsWith('xcx://')) return 'xcx';
+  if (allFullPathPages[url]) return 'mini';
+  if (url.startsWith('http')) return 'h5';
+  return 'other';
+}
+
+function getUrlRegexGroups (url = '') {
   const schemaPart = '(?<schema>[a-z][a-z0-9+\\-.]*):';
   // const protocolSeparator = '(?<sepatator>\\/\\/)?';
   const hostnamePart = '(\/\/(?<hostname>[^\\/\\?#:]+)?)?';
@@ -13,10 +21,19 @@ function getUrlRegexGroups () {
   const regexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}${searchPart}${hashPart}$`;
   const urlRegex = new RegExp(regexPattern, 'i');
 
-  return urlRegex;
+  const match = url.match(urlRegex) || [];
+  const groups = match.groups || {};
+  return {
+    schema: groups.schema || '',
+    hostname: groups.hostname || '', // 注意索引的调整
+    port: groups.port || '',
+    pathname: groups.pathname || '',
+    search: groups.search || '',
+    hash: groups.hash || '',
+  }
 }
 
-function getUrlRegex () {
+function getUrlRegex (url = '') {
   // 定义正则表达式的各个部分，不使用命名捕获组
   const schemaPart = '([a-z][a-z0-9+\\-.]*):';
   const hostnamePart = '(\\/\\/([^\\/\\?#:]+)?)?';
@@ -27,7 +44,7 @@ function getUrlRegex () {
   const regexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}${searchPart}${hashPart}$`;
   const urlRegex = new RegExp(regexPattern, 'i');
 
-  const match = urlStr.match(urlRegex) || [];
+  const match = url.match(urlRegex) || [];
   // 通过数组索引访问捕获的值
   return {
     schema: match[1] || '',
@@ -39,18 +56,21 @@ function getUrlRegex () {
   };
 }
 
-function urlParse(url, appendQuery = {}) {
+function parseUrl(url, appendQuery = {}) {
   // 不使用 protocol 改为自定义判断
   const pageType = getUrlType(url); // h5 开头的
 
-  const urlRegex = getUrlRegexGroups();
-  const match = urlStr.match(urlRegex);
-  const { schema, hostname, port, pathname, search, hash } = match.groups;
+  // const groups = getUrlRegexGroups(url);
+  const groups = getUrlRegex(url);
+  const { schema, hostname, port, pathname, search, hash } = groups;
   const query = parseQuery(search || '');
   Object.assign(query, appendQuery);
 
   const queryStr = stringify(query);
-  const fullUrl = urlfix(url, queryStr);
+  const tempSchema = schema ? schema + '://' : '';
+  const host = [hostname, port].join(':');
+  const path = '/' + pathname.replace(/^\//, '');
+  const fullUrl = urlfix(tempSchema + host + path, queryStr);
 
   return {
     pageType,
@@ -58,12 +78,12 @@ function urlParse(url, appendQuery = {}) {
     hostname,
     port,
     pathname,
-    // search,
     hash,
     query,
-    queryStr: stringify(query),
+    queryStr,
+    fullUrl,
+    // search,
     pageName: '',
-    fullUrl: '',
   }
 }
 
@@ -85,11 +105,11 @@ const arr = [
 ]
 
 arr.forEach(item => {
-  try {
-    console.log(JSON.stringify(urlParse(item), null, 2));
-  }catch(err) {
-    console.log(err)
+  let urlObj = parseUrl(item);
+  if (urlObj.pageType === 'xcx') {
+    urlObj = parseUrl(urlObj.query?.path || '');
   }
+  console.log(JSON.stringify(urlObj, null, 2));
 })
 
 // 跳转 url 解析
@@ -141,7 +161,7 @@ function encode(str = '') {
  * @param {string} [queryStr=''] 传入 queryStr 参数
  * @returns { string } 返回拼接的 url
  */
-export function urlfix(url = '', queryStr = '') {
+function urlfix(url = '', queryStr = '') {
   let fixUrl = url;
   if (queryStr) {
     fixUrl = url + (url.indexOf('?') === -1 ? '?' : '&') + queryStr;
@@ -149,44 +169,6 @@ export function urlfix(url = '', queryStr = '') {
   return fixUrl;
 }
 
-// 链接类型判断规则
-const types = {
-  // miniapp: /^miniapp:\/\//i, // 外部小程序跳转
-  // mini: /^pages\//i, // 支持小程序
-  xcx: /^xcx:\/\//i, // 自定义 schema
-  mini: /^([A-Za-z0-9])+([-|_]([a-z0-9]+)){0,3}$/i, // 小程序 pageName
-  // mini2: /^(\/?pages)(\/([A-Za-z0-9])+([-|_]([a-z0-9]+)){0,3}){1,3}$/i, // 小程序 pageName
-  // h5my: /(\.dev|\.beta)?\.xxx\.com/i,
-  // h5my2: env.baseUrl,
-  // h5auth: /(\.dev|\.beta)?\.xxx\.com/i,
-  h5: /^(https|http):\/\//i,
-  tel: /^tel:/i, // 手机号，h5用a标签写，不走事件，小程序走事件
-  script: /^javascript\:([\w|\d]*)\(\'(.*?)\'\)/, // 自定义脚本 领优惠券
-};
 
 
 
-// 链接类型判断
-// export function getUrlType(url = '') {
-//   if (types['miniapp'].test(url)) return 'miniapp';
-//   // if (types['mini'].test(url)) return 'mini'; // 小程序链接格式
-//   url = url.split('?')[0];
-//   if (types['mini'].test(url)) return 'mini';
-//   if (types['mini2'].test(url)) return 'mini';
-//   if (types['h5my'].test(url)) return 'h5my'; // h5my 会做映射处理
-//   if (url.indexOf(types['h5my2']) === 0) return 'h5my';
-//   if (types['h5auth'].test(url)) return 'h5auth'; // auth h5 会做授权逻辑处理，
-//   if (types['h5'].test(url)) return 'h5';  // 其他 H5 不做处理，直接 webview打开 url
-//   if (types['tel'].test(url)) return 'tel';
-//   if (types['script'].test(url)) return 'script';
-//   return 'other';
-// }
-
-
-const allFullPathPages = {}
-function getUrlType(url = '') {
-  if (url.startsWith('xcx://')) return 'xcx';
-  if (allFullPathPages[url]) return 'mini';
-  if (url.startsWith('http')) return 'h5';
-  return 'other';
-}
