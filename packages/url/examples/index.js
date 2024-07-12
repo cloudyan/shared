@@ -24,12 +24,12 @@ function getUrlRegexGroups (url = '') {
   const match = url.match(urlRegex) || [];
   const groups = match.groups || {};
   return {
-    schema: groups.schema || '',
-    hostname: groups.hostname || '', // 注意索引的调整
-    port: groups.port || '',
-    pathname: groups.pathname || '',
-    search: groups.search || '',
-    hash: groups.hash || '',
+    schema: groups.schema,
+    hostname: groups.hostname, // 注意索引的调整
+    port: groups.port,
+    pathname: groups.pathname,
+    search: groups.search,
+    hash: groups.hash,
   }
 }
 
@@ -47,12 +47,12 @@ function getUrlRegex (url = '') {
   const match = url.match(urlRegex) || [];
   // 通过数组索引访问捕获的值
   return {
-    schema: match[1] || '',
-    hostname: match[3] || '', // 注意索引的调整
-    port: match[4] || '',
-    pathname: match[5] || '',
-    search: match[6] || '',
-    hash: match[7] || '',
+    schema: match[1],
+    hostname: match[3], // 注意索引的调整
+    port: match[4],
+    pathname: match[5],
+    search: match[6],
+    hash: match[7],
   };
 }
 
@@ -62,28 +62,46 @@ function parseUrl(url, appendQuery = {}) {
 
   // const groups = getUrlRegexGroups(url);
   const groups = getUrlRegex(url);
-  const { schema, hostname, port, pathname, search, hash } = groups;
+  const {
+    schema,
+    hostname,
+    port,
+    pathname = '',
+    search,
+    hash,
+  } = groups;
   const query = parseQuery(search || '');
   Object.assign(query, appendQuery);
 
   const queryStr = stringify(query);
   const tempSchema = schema ? schema + '://' : '';
-  const host = [hostname, port].join(':');
-  const path = '/' + pathname.replace(/^\//, '');
+
+  // 计算 host
+  const hostArr = [];
+  if (hostname) hostArr.push(hostname);
+  if (port) hostArr.push(port);
+  const host = hostArr.join(':');
+
+  // 计算 path
+  let path = '';
+  if (pathname) {
+    path = '/' + pathname.replace(/^\//, '');
+  }
+  // 完整路径
   const fullUrl = urlfix(tempSchema + host + path, queryStr);
 
   return {
-    pageType,
-    schema,
-    hostname,
-    port,
-    pathname,
-    hash,
+    // pageType,
+    schema: schema || '',
+    hostname: hostname || '',
+    port: port || '',
+    pathname: pathname || '',
+    hash: hash || '',
     query,
     queryStr,
     fullUrl,
     // search,
-    pageName: '',
+    // pageName: '',
   }
 }
 
