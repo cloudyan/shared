@@ -117,6 +117,24 @@ const testCases = [
     },
   },
   {
+    url: `/page/index?xdLoginToken=xxx&fromAppId=123`,
+    expected: {
+      "fullUrl": "/page/index?xdLoginToken=xxx&fromAppId=123",
+      "hash": "",
+      "hostname": "",
+      "originUrl": "/page/index?xdLoginToken=xxx&fromAppId=123",
+      "pathname": "/page/index",
+      "port": "",
+      "query": {
+        "fromAppId": "123",
+        "xdLoginToken": "xxx",
+      },
+      "queryStr": "xdLoginToken=xxx&fromAppId=123",
+      "schema": "",
+      "search": "xdLoginToken=xxx&fromAppId=123",
+    }
+  },
+  {
     url: `itms-apps://`,
     expected: {
       originUrl: `itms-apps://`,
@@ -217,28 +235,16 @@ const testCases = [
       "search": "a=1&b=2",
     },
   },
-  {
-    url: '/api/users',
-    expected: {
-      originUrl: '/api/users',
-      fullUrl: "/api/users",
-      schema: "",
-      hash: "",
-      hostname: "",
-      pathname: "/api/users",
-      port: "",
-      query: { },
-      queryStr: "",
-      search: "",
-    },
-  },
 ]
 
 describe('parseUrl 解析', () => {
+  // 所有测试用例
+  console.log('testCases', testCases.map(item => item.url));
   testCases.forEach(({ url, expected }) => {
     it(`正确解析 URL: ${url}`, () => {
       const result = parseUrl(url);
       expect(result).toEqual(expected);
+      // expect(result.fullUrl).toEqual(expected.originUrl);
     });
   });
 })
