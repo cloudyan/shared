@@ -5,6 +5,10 @@
 
 ## Design
 
+提供跨平台的 URL 功能，针对任意的字符串进行解析，映射为 url 对象
+
+提取 路径、query 参数，以及附加合并 query 参数等
+
 ```js
 // URL 对象
 // protocol: "https:"

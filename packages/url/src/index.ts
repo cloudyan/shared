@@ -1,52 +1,58 @@
 
+interface UrlQuery {
+  [key: string]: any
+}
 
-function getUrlRegexGroups (url = '') {
-  const schemaPart = '(?<schema>[a-z][a-z0-9+\\-.]*):';
-  // const protocolSeparator = '(?<sepatator>\\/\\/)?';
-  const hostnamePart = '(\/\/(?<hostname>[^\\/\\?#:]+)?)?';
-  const portPart = '(?::(?<port>\\d+))?';
-  const pathnamePart = '(?<pathname>(\\/)?[^?#]*)?';
-  const searchPart = '(?:\\?(?<search>[^#]*))?';
-  const hashPart = '(?:#(?<hash>.*))?';
-  const regexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}${searchPart}${hashPart}$`;
-  const urlRegex = new RegExp(regexPattern, 'i');
+export function parseUrl(url: string = '', appendQuery: UrlQuery = {}) {
+  // const groups = getUrlRegexGroups(url);
+  const groups = getUrlRegex(url);
+  const {
+    schema,
+    hostname,
+    port,
+    pathname = '',
+    search,
+    hash,
+  } = groups;
+  const query = parseQuery(search || '');
+  Object.assign(query, appendQuery);
 
-  const match = url.match(urlRegex) || [];
-  const groups = match?.groups || {};
+  const queryStr = stringify(query);
+  const tempSchema = schema ? schema + '://' : '';
+
+  // 计算 host
+  const hostArr: string[] = [];
+  if (hostname) hostArr.push(hostname);
+  if (port) hostArr.push(port);
+  const host = hostArr.join(':');
+
+  // 计算 path
+  let path = '';
+  if (pathname) {
+    path = '/' + pathname.replace(/^\//, '');
+  }
+  // 完整路径
+  let fullUrl = urlfix(tempSchema + host + path, queryStr);
+
+  if (hash) {
+    fullUrl += '#' + hash;
+  }
+
   return {
-    schema: groups.schema || '',
-    hostname: groups.hostname || '', // 注意索引的调整
-    port: groups.port || '',
-    pathname: groups.pathname || '',
-    search: groups.search || '',
-    hash: groups.hash || '',
+    schema,
+    hostname,
+    port,
+    pathname,
+    search,
+    hash,
+    query,
+    queryStr,
+    fullUrl,
+    originUrl: url,
   }
 }
 
-function getUrlRegex (urlStr: string = '') {
-  // 定义正则表达式的各个部分，不使用命名捕获组
-  const schemaPart = '([a-z][a-z0-9+\\-.]*):';
-  const hostnamePart = '(\\/\\/([^\\/\\?#:]+)?)?';
-  const portPart = '(?::(\\d+))?';
-  const pathnamePart = '((\\/)?[^?#]*)?';
-  const searchPart = '(?:\\?([^#]*))?';
-  const hashPart = '(?:#(.*))?';
-  const regexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}${searchPart}${hashPart}$`;
-  const urlRegex = new RegExp(regexPattern, 'i');
-
-  const match = urlStr.match(urlRegex) || [];
-  // 通过数组索引访问捕获的值
-  return {
-    schema: match[1] || '',
-    hostname: match[3] || '', // 注意索引的调整
-    port: match[4] || '',
-    pathname: match[5] || '',
-    search: match[6] || '',
-    hash: match[7] || '',
-  };
-}
-
-function stringify(query: Record<string, any>): string {
+export function stringify(query: UrlQuery = {}): string {
   const result: string[] = [];
   Object.entries(query).forEach(([key, value]) => {
     // 以下 value 值，会被过滤
@@ -61,7 +67,7 @@ function stringify(query: Record<string, any>): string {
   return result.join('&');
 }
 
-function parseQuery(queryStr = '', appendQuery = {}) {
+export function parseQuery(queryStr: string = '', appendQuery: UrlQuery = {}) {
   const query = {};
   if (!queryStr) return query;
   queryStr.split('&').forEach((part) => {
@@ -88,34 +94,71 @@ function urlfix(url = '', queryStr = '') {
   return fixUrl;
 }
 
-function parseUrl(url, appendQuery = {}) {
-  // 不使用 protocol 改为自定义判断
-  // const pageType = getUrlType(url); // h5 开头的
+function getUrlRegexGroups(url: string = '') {
+  // 解析 path 部分
+  const schemaPart = '(?<schema>[a-z][a-z0-9+\\-.]*):';
+  // const protocolSeparator = '(?<sepatator>\\/\\/)?';
+  const hostnamePart = '(\/\/(?<hostname>[^\\/\\?#:]+)?)?';
+  const portPart = '(?::(?<port>\\d+))?';
+  const pathnamePart = '(?<pathname>(\\/)?[^?#]*)?';
 
-  const groups = getUrlRegex(url);
-  const { schema, hostname, port, pathname, search, hash } = groups;
-  const query = parseQuery(search || '');
-  Object.assign(query, appendQuery);
+  // 解析 query 部分
+  const searchPart = '(?:\\?(?<search>[^#]*))?';
+  const hashPart = '(?:#(?<hash>.*))?';
 
-  const queryStr = stringify(query);
+  const pathRegexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}$`
+  const queryRegexPattern = `^${searchPart}${hashPart}$`;
 
-  const tempSchema = schema ? schema + '://' : '';
-  const host = [hostname, port].join(':');
-  const path = '/' + pathname.replace(/^\//, '');
-  const fullUrl = urlfix(tempSchema + host + path, queryStr);
+  const pathRegex = new RegExp(pathRegexPattern, 'i');
+  const queryRegex = new RegExp(queryRegexPattern, 'i');
 
+  // 使用 ? 分隔 url
+  const urlArr = url.split('?');
+  const [pathPart = '', queryPart = ''] = urlArr;
+  const pathMatch: any = pathPart.match(pathRegex) || [];
+  const queryPatch: any = ('?' + queryPart).match(queryRegex) || [];
+
+  const groups = { ...(pathMatch?.groups || {}), ...(queryPatch?.groups || {}) };
+  console.log('groups', groups);
   return {
-    // pageType,
-    schema,
-    hostname,
-    port,
-    pathname,
-    search,
-    hash,
-    query,
-    queryStr,
-    fullUrl,
-    // pageName: '',
+    schema: groups.schema || '',
+    hostname: groups.hostname || '', // 注意索引的调整
+    port: groups.port || '',
+    pathname: groups.pathname || '',
+    search: groups.search || '',
+    hash: groups.hash || '',
   }
 }
 
+function getUrlRegex(url: string = '') {
+  // 定义正则表达式的各个部分，不使用命名捕获组
+  const schemaPart = '([a-z][a-z0-9+\\-.]*):';
+  const hostnamePart = '(\\/\\/([^\\/\\?#:]+)?)?';
+  const portPart = '(?::(\\d+))?';
+  const pathnamePart = '((\\/)?[^?#]*)?';
+  const searchPart = '(?:\\?([^#]*))?';
+  const hashPart = '(?:#(.*))?';
+  const regexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}${searchPart}${hashPart}$`;
+  const urlRegex = new RegExp(regexPattern, 'i');
+
+  const pathRegexPattern = `^(?:${schemaPart})?${hostnamePart}${portPart}${pathnamePart}$`
+  const queryRegexPattern = `^${searchPart}${hashPart}$`;
+
+  const pathRegex = new RegExp(pathRegexPattern, 'i');
+  const queryRegex = new RegExp(queryRegexPattern, 'i');
+
+  const urlArr = url.split('?');
+  const [pathPart = '', queryPart = ''] = urlArr;
+  const pathMatch: any = pathPart.match(pathRegex) || [];
+  const queryPatch: any = ('?' + queryPart).match(queryRegex) || [];
+
+  // 通过数组索引访问捕获的值
+  return {
+    schema: pathMatch[1] || '',
+    hostname: pathMatch[3] || '', // 注意索引的调整
+    port: pathMatch[4] || '',
+    pathname: pathMatch[5] || '',
+    search: queryPatch[1] || '',
+    hash: queryPatch[2] || '',
+  };
+}

@@ -9,8 +9,8 @@
     "build": "father build",
     "build:deps": "father prebundle",
     "prepublishOnly": "father doctor && npm run build",
-    "test": "jest --colors --coverage --no-cache",
-    "test2": "vitest"
+    "test2": "jest --colors --coverage --no-cache",
+    "test": "vitest"
   },
   "keywords": [],
   "authors": [

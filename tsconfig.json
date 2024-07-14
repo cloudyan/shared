@@ -6,6 +6,7 @@
     "jsx": "preserve",
     "declaration": true,
     "skipLibCheck": true,
+    "allowJs": true,
     "esModuleInterop": true
   }
 }
