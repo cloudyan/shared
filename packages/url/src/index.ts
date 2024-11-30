@@ -17,45 +17,9 @@
 //  ✓ 正确解析 URL: itms-apps://itunes.apple.com/app/id1478276004
 //  ✓ 正确解析 URL: market://details?id=com.zaxd.loan
 
+import { ParsedUrl, UrlQuery } from './types';
+import { encode, isValidUrl, PATH_REGEX, QUERY_REGEX, safeRegexMatch } from './utils';
 
-interface UrlQuery {
-  [key: string]: string | number | boolean | object | null;
-}
-
-// 定义正则表达式的各个部分，不使用命名捕获组
-const URL_REGEX = {
-  SCHEMA: '([a-z][a-z0-9+\\-.]*):',
-  HOSTNAME: '(\\/\\/([^\\/\\?#:]+)?)?',
-  PORT: '(?::(\\d+))?',
-  PATHNAME: '((\\/)?[^?#]*)?',
-  SEARCH: '(?:\\?([^#]*))?',
-  HASH: '(?:#(.*))?'
-};
-
-const pathRegexPattern = `^(?:${URL_REGEX.SCHEMA})?${URL_REGEX.HOSTNAME}${URL_REGEX.PORT}${URL_REGEX.PATHNAME}$`
-const queryRegexPattern = `^${URL_REGEX.SEARCH}${URL_REGEX.HASH}$`;
-
-// 缓存正则表达式实例
-const PATH_REGEX = new RegExp(pathRegexPattern, 'i');
-const QUERY_REGEX = new RegExp(queryRegexPattern, 'i');
-
-// 正则表达式超时保护
-function safeRegexMatch(regex: RegExp, str: string) {
-  try {
-    const startTime = Date.now();
-    const result = str.match(regex);
-
-    // 如果匹配时间超过 100ms，记录警告
-    if (Date.now() - startTime > 100) {
-      console.warn('Regex matching took too long:', regex);
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Regex matching error:', error);
-    return null;
-  }
-}
 
 function getUrlRegex(url: string = '') {
   const urlArr = url.split('?');
@@ -75,49 +39,6 @@ function getUrlRegex(url: string = '') {
   };
 }
 
-// 建议添加更多类型定义
-interface ParsedUrl {
-  schema: string;
-  hostname: string;
-  port: string;
-  pathname: string;
-  search: string;
-  hash: string;
-  query: UrlQuery;
-  queryStr: string;
-  fullUrl: string;
-  originUrl: string;
-}
-
-interface UrlRegexResult {
-  schema: string;
-  hostname: string;
-  port: string;
-  pathname: string;
-  search: string;
-  hash: string;
-}
-
-// 添加 URL 格式验证函数
-function isValidUrl(url: string): boolean {
-  try {
-    // 修改为更宽松的长度限制，设置为 8KB (8192 字符)
-    // 这是一个相对安全的值，能够适应大多数服务器的限制
-    if (url.length > 8192) {
-      console.warn('URL length exceeds recommended limit (8192 characters)');
-      return false;
-    }
-
-    // 检查是否包含非法字符
-    const invalidChars = /[\s<>\\{}|^`]/g;
-    if (invalidChars.test(url)) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function parseUrl(url: string, appendQuery: UrlQuery = {}): ParsedUrl {
   // 修改入参校验逻辑
   if (url === null || url === undefined) {
@@ -129,11 +50,12 @@ export function parseUrl(url: string, appendQuery: UrlQuery = {}): ParsedUrl {
   }
 
   if (!isValidUrl(url)) {
-    throw new Error('Invalid URL format');
+    console.error('Invalid URL format:', url);
+    throw new URLParseError('Invalid URL format', url);
   }
 
   // 增加 try-catch 错误处理
-  try {
+  // try {
     url = url.replace(/\?/g, '&').replace('&', '?');
     const groups = getUrlRegex(url);
     const {
@@ -180,10 +102,10 @@ export function parseUrl(url: string, appendQuery: UrlQuery = {}): ParsedUrl {
       fullUrl,
       originUrl: url,
     }
-  } catch (error) {
-    console.error('URL parsing error:', error);
-    throw error;
-  }
+  // } catch (error) {
+  //   console.error('URL parsing error:', error);
+  //   throw error;
+  // }
 }
 
 export function urlfix(url = '', queryStr = '') {
@@ -265,24 +187,13 @@ export function parseQuery(queryStr: string = '', appendQuery: UrlQuery = {}) {
       }
     }
   } catch (error) {
+
     console.error('Query parsing error:', error);
     return {...query, ...appendQuery};
   }
 
   return {...query, ...appendQuery};
 }
-
-function encode(str: any = ''): string {
-  if (str === null || str === undefined) return '';
-  // 确保转换为字符串
-  const strValue = String(str);
-  return encodeURIComponent(strValue)
-    .replace(/!/g, '%21')
-    .replace(/'/g, '%27')
-    .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29');
-}
-
 
 function getUrlRegexGroups(url: string = '') {
   // 解析 path 部分
@@ -327,3 +238,5 @@ class URLParseError extends Error {
     this.name = 'URLParseError';
   }
 }
+
+console.log(parseUrl('http://example.com/\n'))
