@@ -49,6 +49,7 @@
 2. 保证向下兼容
 
 
+
 ## 基础库模块设计
 
 1. 采用 monorepo 仓库，实现模块管理
@@ -56,6 +57,31 @@
 3. 仓库：jrfed-shared （需要新建）
 
 基础库模块列表
+
+```bash
+packages/
+  ├── api/           # API 管理
+  ├── bridge/        # 桥模块
+  ├── core/          # 核心工具
+  ├── device/        # 设备信息
+  ├── env/           # 环境检测
+  ├── hooks/         # React Hooks
+  ├── monitor/       # 性能监控
+  ├── platform/      # 平台处理
+  ├── request/       # 请求封装
+  ├── router/        # 路由模块
+  ├── runtimeEnv/    # 运行环境
+  ├── storage/       # 存储方案
+  ├── url/           # URL 处理
+  ├── analytics/     # 埋点
+  ├── theme/         # 主题处理
+  ├── validator/     # 数据校验
+  ├── formatter/     # 格式化工具
+  ├── websocket/     # WebSocket
+  ├── utils/         # 工具函数
+  ├── types/         # 类型定义
+  └── README.md
+```
 
 1. device 设备模块，实现设备判断
    a. 设备  安卓、iOS、鸿蒙
