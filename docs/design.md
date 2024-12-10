@@ -92,3 +92,49 @@ packages/
 - README 使用统一模板
 - 包含 API 文档
 - 提供使用示例
+
+### 2. 存储模块设计
+
+#### 2.1 功能描述
+
+- 提供跨端存储接口
+- 支持 localStorage、sessionStorage、Taro Storage 等
+- 统一的 API 以简化不同平台的存储操作
+
+#### 2.2 接口设计
+
+```typescript
+interface StorageAPI {
+  setItem(key: string, value: any): void; // 设置存储项
+  getItem(key: string): any; // 获取存储项
+  removeItem(key: string): void; // 移除存储项
+  clear(): void; // 清空存储
+}
+
+export const storage: StorageAPI = {
+  setItem(key, value) {
+    // 实现逻辑
+  },
+  getItem(key) {
+    // 实现逻辑
+  },
+  removeItem(key) {
+    // 实现逻辑
+  },
+  clear() {
+    // 实现逻辑
+  },
+};
+```
+
+#### 2.3 使用示例
+
+```typescript
+import { storage } from '@shared/storage';
+
+storage.setItem('token', '123456'); // 设置 token
+const token = storage.getItem('token'); // 获取 token
+console.log(token);
+storage.removeItem('token'); // 移除 token
+storage.clear(); // 清空所有存储项
+```
