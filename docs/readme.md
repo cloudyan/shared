@@ -48,15 +48,13 @@
 1. 划分优先级,分批迁移
 2. 保证向下兼容
 
-
-
 ## 基础库模块设计
 
 1. 采用 monorepo 仓库，实现模块管理
 2. 采用 jest 实现自动化测试，保证代码质量
-3. 仓库：jrfed-shared （需要新建）
+3. 新建 utils 仓库（需要新建）
 
-基础库模块列表
+### 基础库模块列表
 
 ```bash
 packages/
@@ -83,49 +81,227 @@ packages/
   └── README.md
 ```
 
-1. device 设备模块，实现设备判断
-   a. 设备  安卓、iOS、鸿蒙
-   b. 容器运行时 微信、微信小程序、抖音小程序、众安贷 app 内 等等
-2. storage 存储模块，实现跨端存储
-   a. 通过对应端的底层 api，封装统一的跨端 API
-3. runtimeEnv 运行环境
-   a. 代码的运行环境，dev, uat, prd
-   b. 小贷，taroweb 等
-4. router 路由模块
-   a. 封装路由，统一跳转逻辑
-5. request 请求库封装
-   a. 封装统一 API，适配 axios，Tar   o. request
-6. url  URL解析模块
-   a. 解析 URL
-   b. 拼接 URL
-7. 埋点模块
-   a. 封装神策埋点，统一 API
-8. 监控
-   a. 封装统一的 API，对接小程序或六翼埋点
-9. bride 桥模块
-   a. 封装统一 API，适配新桥、老桥、鸿蒙等
-10. 加密模块
-   a. 接口加解密
-11. 公参模块
-   a. 处理公共参数
-12. supplierCode 模块
-   a. 封装 supplierCode 逻辑
-13. utils
-   a. 各种小工具方法，如金额处理，卡号格式化、正则校验等等
-   b. 时间格式，可统一使用 dayjs 即可
+1. **device 设备模块**
+
+   - 实现设备判断
+   - 设备类型：安卓、iOS、鸿蒙
+   - 容器运行时：微信、微信小程序、抖音小程序、众安贷 app 内等
+
+2. **storage 存储模块**
+
+   - 实现跨端存储
+   - 通过对应端的底层 API，封装统一的跨端 API
+
+3. **runtimeEnv 运行环境**
+
+   - 代码的运行环境：dev, uat, prd
+   - 小贷，taroweb等
+
+4. **router 路由模块**
+
+   - 封装路由，统一跳转逻辑
+
+5. **request 请求库封装**
+
+   - 封装统一 API，适配 axios，Taro.request
+
+6. **url URL解析模块**
+
+   - 解析 URL
+   - 拼接 URL
+
+7. **埋点模块**
+
+   - 封装神策埋点，统一 API
+
+8. **监控**
+
+   - 封装统一的 API，对接小程序或六翼埋点
+
+9. **bridge 桥模块**
+
+   - 封装统一 API，适配新桥、老桥、鸿蒙等
+
+10. **加密模块**
+
+    - 接口加解密
+
+11. **公参模块**
+
+    - 处理公共参数
+
+12. **supplierCode 模块**
+
+    - 封装 supplierCode 逻辑
+
+13. **utils**
+    - 各种小工具方法，如金额处理，卡号格式化、正则校验等等
+    - 时间格式，可统一使用 dayjs 即可
+
+## 架构图
+
+以下是基础库的架构图，展示了各个模块之间的关系和交互：
+
+```plantuml
+@startuml
+package "页面" {
+  [页面]
+}
+
+package "业务模块" {
+  [业务模块]
+}
+
+package "基础库" {
+  [storage] --> [device]
+  [device] --> [bridge]
+  [bridge] --> [router]
+  [router] --> [request]
+  [request] --> [url]
+  [request] --> [监控]
+  [request] --> [埋点]
+  [request] --> [supplierCode]
+  [request] --> [tools]
+}
+
+package "基础 SDK" {
+  [localStorage]
+  [sessionStorage]
+  [Taro Storage]
+  [memory Storage]
+}
+
+package "基于 SDK" {
+  [location 模块]
+  [history 模块]
+  [Taro 路由模块]
+}
+
+[页面] --> [业务模块]
+[业务模块] --> [基础库]
+[基础库] --> [基础 SDK]
+[基础库] --> [基于 SDK]
+@enduml
+```
 
 ## 设计方案
 
 每个模块单独出设计方案
 
+### 1. 设备模块设计
+
+#### 1.1 功能描述
+
+- 判断当前设备类型
+- 判断当前运行环境
+
+#### 1.2 接口设计
+
+```typescript
+interface DeviceInfo {
+  isMobile: boolean;
+  isIOS: boolean;
+  isAndroid: boolean;
+  isWeChat: boolean;
+  isMiniProgram: boolean;
+}
+
+export const getDeviceInfo = (): DeviceInfo => {
+  // 实现逻辑
+};
+```
+
+#### 1.3 使用示例
+
+```typescript
+import { getDeviceInfo } from 'utils/device';
+
+const deviceInfo = getDeviceInfo();
+console.log(deviceInfo);
+```
+
+### 2. 存储模块设计
+
+#### 2.1 功能描述
+
+- 提供跨端存储接口
+- 支持 localStorage、sessionStorage、Taro Storage 等
+
+#### 2.2 接口设计
+
+```typescript
+interface StorageAPI {
+  setItem(key: string, value: any): void;
+  getItem(key: string): any;
+  removeItem(key: string): void;
+}
+
+export const storage: StorageAPI = {
+  setItem(key, value) {
+    // 实现逻辑
+  },
+  getItem(key) {
+    // 实现逻辑
+  },
+  removeItem(key) {
+    // 实现逻辑
+  },
+};
+```
+
+#### 2.3 使用示例
+
+```typescript
+import { storage } from 'utils/storage';
+
+storage.setItem('token', '123456');
+const token = storage.getItem('token');
+console.log(token);
+```
+
+### 3. 请求模块设计
+
+#### 3.1 功能描述
+
+- 封装请求库，支持 axios 和 Taro.request
+
+#### 3.2 接口设计
+
+```typescript
+interface RequestOptions {
+  url: string;
+  method?: 'GET' | 'POST';
+  data?: any;
+  headers?: Record<string, string>;
+}
+
+export const request = async (options: RequestOptions) => {
+  // 实现逻辑
+};
+```
+
+#### 3.3 使用示例
+
+```typescript
+import { request } from 'utils/request';
+
+const fetchData = async () => {
+  const response = await request({
+    url: '/api/data',
+    method: 'GET',
+  });
+  console.log(response);
+};
+```
+
 ## 业务基础模块
 
 非通用的，或具有特定业务属性的，且提供基础能力的，应为业务基础模块
 
-列表如下，可按需提取、丰富
+### 列表如下，可按需提取、丰富
 
 - 特定业务场景
-  - 如 isMiniProgram() 判断小贷的小程序内，依赖 device, strorage, url, appIdConfig 等模块
+  - 如 isMiniProgram() 判断小贷的小程序内，依赖 device, storage, url, appIdConfig 等模块
 - 授信的 flow 公共逻辑
 - 小贷初始化逻辑 initStatus
 - 风控信息
@@ -133,9 +309,6 @@ packages/
 - 协议跳转
 - 挽留弹窗的挽留逻辑控制
 - 图片压缩
-- ...
-
-业务相关模块，在业务项目中维护即可
 
 ## 单测覆盖
 
