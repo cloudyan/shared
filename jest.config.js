@@ -10,6 +10,7 @@ module.exports = {
     // '<rootDir>/packages/request/__tests__/bridge-ready.test.js',
     // '<rootDir>/packages/request/__tests__/*.test.js',
     '<rootDir>/packages/**/__tests__/*.test.js',
+    '<rootDir>/packages/**/__tests__/*.test.ts',
     // '!**/adapter.test.js',
     // '!**/session.test.js',
   ],
@@ -34,5 +35,7 @@ module.exports = {
   //   'json',
   //   ['lcov', {projectRoot: './test'}]
   // ],
-  testURL: 'http://localhost?p_u=p_u&p_s=p_s&p_t=p_t',
+  testEnvironmentOptions: {
+    url: 'http://localhost?p_u=p_u&p_s=p_s&p_t=p_t',
+  }
 };
